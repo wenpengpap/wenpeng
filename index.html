@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>健康分析</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            padding: 20px;
+        }
+        .left-column {
+            flex: 2;
+            text-align: center;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .right-column {
+            flex: 1;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            margin-left: 20px;
+            display: flex; /* 使用 Flexbox 布局 */
+            flex-direction: column; /* 子元素垂直排列 */
+            justify-content: center; /* 垂直居中 */
+            align-items: center; /* 水平居中 */
+            text-align: center;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        input, textarea {
+            width: calc(100% - 40px);
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: #333;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #ff6f61, #de6262);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .healthReport p {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 10px;
+            color: #333;
+            margin: 10px 0;
+        }
+        .response-box {
+            background-color: rgba(255, 255, 255, 0.8);
+            color: #333;
+            padding: 10px;
+            border-radius: 10px;
+            min-height: 100px;
+            margin-bottom: 10px;
+            width: 80%; /* 调整宽度以适应内容 */
+            text-align: left; /* 内容左对齐 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧：健康分析 -->
+        <div class="left-column">
+            <h1>欢迎使用健康分析工具</h1>
+
+            <button id="startAnalysis">开始健康分析</button>
+            <div class="healthForm" id="healthForm" style="display: none;">
+                <input type="number" id="heightInput" placeholder="请输入您的身高(cm)" />
+                <input type="number" id="weightInput" placeholder="请输入您的体重(kg)" />
+                <input type="number" id="ageInput" placeholder="请输入您的年龄" />
+                <textarea id="injuryHistoryInput" placeholder="请输入您的历史伤病"></textarea>
+                <button id="submitHealthInfo">提交信息</button>
+            </div>
+            <div class="healthReport" id="healthReport"></div>
+        </div>
+
+        <!-- 右侧：问答交互 -->
+        <div class="right-column">
+            <div class="response-box" id="responseBox">健康AI小助手</div>
+            <textarea id="userInput" placeholder="在此输入问题或内容..."></textarea>
+            <button id="sendToQwen">发送给健康AI小助手</button>
+        </div>
+    </div>
+
+    <script>
+        // 开始健康分析按钮
+        document.getElementById('startAnalysis').addEventListener('click', () => {
+            document.getElementById('healthForm').style.display = 'block';
+        });
+
+        // 提交健康信息按钮
+        document.getElementById('submitHealthInfo').addEventListener('click', async () => {
+            const height = document.getElementById('heightInput').value;
+            const weight = document.getElementById('weightInput').value;
+            const age = document.getElementById('ageInput').value;
+            const injuryHistory = document.getElementById('injuryHistoryInput').value;
+
+            if (!height || !weight || !age) {
+                alert('请填写所有必填项');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:4000/api/analyze-health', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ height, weight, age, injuryHistory }),
+                });
+
+                const data = await response.json();
+                document.getElementById('healthReport').innerHTML = `
+                    <h3 style="color: white;">健康报告</h3>
+                    <p>身体状态：${data.bodyCondition}</p>
+                    <p>距离标准体重差距：${data.weightDifference} kg</p>
+                    <p>锻炼建议：${data.exerciseAdvice}</p>
+                    <p>饮食建议：${data.dietAdvice}</p>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        // 发送给通义千问按钮
+        document.getElementById('sendToQwen').addEventListener('click', async () => {
+            const userInput = document.getElementById('userInput').value;
+
+            if (!userInput) {
+                alert('请输入内容后再发送！');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:4000/api/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: userInput }),
+                });
+
+                const data = await response.json();
+                document.getElementById('responseBox').innerText = data.answer;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+
+            // 清空输入框
+            document.getElementById('userInput').value = '';
+        });
+    </script>
+</body>
+</html>
